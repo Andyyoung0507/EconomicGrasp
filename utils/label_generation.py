@@ -47,6 +47,9 @@ def process_grasp_labels(end_points):
         view_graspness_merged = []
         top_view_index_merged = []
         for obj_idx, pose in enumerate(poses):
+            # 在生成场景级抓取标签时实际上没有考虑物体在场景中的坐标位置，只是把相应的物体模型坐标系下的点做了筛选和保存，
+            # 在这里开始考虑各模型的位姿，并转换到了场景坐标系（也是相机坐标系）中，和seed_xyz_位置利用knn匹配找到点的对应关系
+            # 其他相关指标都是和点一一对应的，直接按照点的index挑选即可，Line116-Line130
             grasp_points = end_points['grasp_points_list'][i][obj_idx]  # [objects points, 3]
             grasp_rotations = end_points['grasp_rotations_list'][i][obj_idx]  # [objects points, num_of_view]
             grasp_depth = end_points['grasp_depth_list'][i][obj_idx]  # [objects points, num_of_view]

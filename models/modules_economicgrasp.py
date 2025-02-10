@@ -77,8 +77,8 @@ class Cylinder_Grouping_Local_Interaction(nn.Module):
         self.nsample = nsample
         self.in_dim = seed_feature_dim
         self.cylinder_radius = cylinder_radius
-        mlps = [3 + self.in_dim, 256, 256]
-        mlps2 = [3 + 256, 256, 256]
+        mlps = [3 + self.in_dim, 256, 256] # [515, 256, 256]
+        mlps2 = [3 + 256, 256, 256] # [259, 256, 256]
 
         self.grouper = CylinderQueryAndGroup(radius=cylinder_radius, hmin=hmin, hmax=hmax, nsample=nsample, use_xyz=True, normalize_xyz=True)
         self.mlps = pt_utils.SharedMLP(mlps, bn=True)
@@ -169,9 +169,9 @@ class MultiHeadAttn(nn.Module):
     def attention(queries, keys, values, mask=None, dropout=None):
         """
             queries: B x H x S x headdim
-            keys: B x H x L x headdim
-            values: B x H x L x headdim
-            mask: B x 1 x S x L
+            keys:    B x H x L x headdim
+            values:  B x H x L x headdim
+            mask:    B x 1 x S x L
         """
         head_dim = queries.size(-1)
         scores = queries @ keys.transpose(-1, -2) / math.sqrt(head_dim)  # B x H x S x L

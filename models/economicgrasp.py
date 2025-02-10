@@ -158,4 +158,4 @@ def pred_decode(end_points):
         obj_ids = -1 * torch.ones_like(grasp_score)
         grasp_preds.append(
             torch.cat([grasp_score, grasp_width, grasp_height, grasp_depth, grasp_rot, grasp_center, obj_ids], axis=-1))
-    return grasp_preds
+    return grasp_preds # list of grasp_preds, each grasp_preds is [1024, 17]

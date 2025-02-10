@@ -81,14 +81,14 @@ def inference():
         for i in range(cfgs.batch_size):
             data_idx = batch_idx * cfgs.batch_size + i
             preds = grasp_preds[i].detach().cpu().numpy()
-            gg = GraspGroup(preds)
+            gg = GraspGroup(preds) # Grasp Group, Number=1024
 
             # collision detection
             if cfgs.collision_thresh > 0:
                 cloud, _ = TEST_DATASET.get_data(data_idx, return_raw_cloud=True)
                 mfcdetector = ModelFreeCollisionDetector(cloud, voxel_size=cfgs.voxel_size)
                 collision_mask = mfcdetector.detect(gg, approach_dist=0.05, collision_thresh=cfgs.collision_thresh)
-                gg = gg[~collision_mask]
+                gg = gg[~collision_mask] # Grasp Group, Number=849,经过碰撞筛选了一部分
 
             # save grasps
             save_dir = os.path.join(cfgs.save_dir, SCENE_LIST[data_idx], cfgs.camera)

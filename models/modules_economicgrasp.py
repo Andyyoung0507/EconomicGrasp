@@ -87,17 +87,16 @@ class Cylinder_Grouping_Local_Interaction(nn.Module):
         self.mlps2 = pt_utils.SharedMLP(mlps2, bn=True)
 
     def forward(self, seed_xyz_graspable, seed_features_graspable, vp_rot):
-        coords = seed_xyz_graspable.transpose(-1, -2).unsqueeze(-1).expand(-1, -1, -1, self.nsample)
-        grouped_feature = self.grouper(seed_xyz_graspable, seed_xyz_graspable, vp_rot, seed_features_graspable)
-        new_features = self.mlps(grouped_feature)
-        new_features = torch.cat([new_features, coords], dim=1).permute(0, 2, 3, 1).contiguous().view(-1, self.nsample, 256 + 3)
+        coords = seed_xyz_graspable.transpose(-1, -2).unsqueeze(-1).expand(-1, -1, -1, self.nsample) # torch.Size([4, 3, 1024, 16])
+        grouped_feature = self.grouper(seed_xyz_graspable, seed_xyz_graspable, vp_rot, seed_features_graspable) # torch.Size([4, 515, 1024, 16])
+        new_features = self.mlps(grouped_feature) # torch.Size([4, 256, 1024, 16])
+        new_features = torch.cat([new_features, coords], dim=1).permute(0, 2, 3, 1).contiguous().view(-1, self.nsample, 256 + 3) # torch.Size([4096, 16, 259])
         new_features = self.local_interaction_module(new_features, new_features, new_features, mask=None)
-        new_features = new_features.view(seed_xyz_graspable.shape[0], seed_xyz_graspable.shape[1], self.nsample, 3 + 256).permute(0, 3, 1, 2).contiguous()
-        new_features = self.mlps2(new_features)
-        new_features = F.max_pool2d(new_features, kernel_size=[1, new_features.size(3)])
-        new_features = new_features.squeeze(-1)
+        new_features = new_features.view(seed_xyz_graspable.shape[0], seed_xyz_graspable.shape[1], self.nsample, 3 + 256).permute(0, 3, 1, 2).contiguous() # torch.Size([4, 259, 1024, 16])
+        new_features = self.mlps2(new_features) # torch.Size([4, 256, 1024, 16])
+        new_features = F.max_pool2d(new_features, kernel_size=[1, new_features.size(3)]) # torch.Size([4, 256, 1024, 1])
+        new_features = new_features.squeeze(-1) # torch.Size([4, 256, 1024])
         return new_features
-
 
 class Grasp_Head_Globle_Interaction(nn.Module):
     def __init__(self, num_angle, num_depth):
@@ -119,22 +118,22 @@ class Grasp_Head_Globle_Interaction(nn.Module):
         self.conv_score = nn.Conv1d(64, 6, 1)  # use classification for score learning
 
     def forward(self, vp_features, end_points):
-        B, _, num_seed = vp_features.size()
+        B, _, num_seed = vp_features.size() # torch.Size([4, 256, 1024])
 
-        angle_features = self.conv_angle_feature(vp_features)
-        depth_features = self.conv_depth_feature(vp_features)
-        width_features = self.conv_width_feature(vp_features)
-        score_features = self.conv_score_feature(vp_features)
+        angle_features = self.conv_angle_feature(vp_features) # torch.Size([4, 64, 1024])
+        depth_features = self.conv_depth_feature(vp_features) # torch.Size([4, 64, 1024])
+        width_features = self.conv_width_feature(vp_features) # torch.Size([4, 64, 1024])
+        score_features = self.conv_score_feature(vp_features) # torch.Size([4, 64, 1024])
 
-        angle_features = angle_features.permute(0, 2, 1).contiguous().view(-1, 64).unsqueeze(1)
+        angle_features = angle_features.permute(0, 2, 1).contiguous().view(-1, 64).unsqueeze(1) # torch.Size([4096, 1, 64])
         depth_features = depth_features.permute(0, 2, 1).contiguous().view(-1, 64).unsqueeze(1)
         width_features = width_features.permute(0, 2, 1).contiguous().view(-1, 64).unsqueeze(1)
         score_features = score_features.permute(0, 2, 1).contiguous().view(-1, 64).unsqueeze(1)
 
-        interaction_feature = torch.cat([angle_features, depth_features, width_features, score_features], dim=1)
+        interaction_feature = torch.cat([angle_features, depth_features, width_features, score_features], dim=1) # torch.Size([4096, 4, 64])
         interaction_feature = self.global_interaction_module(interaction_feature, interaction_feature, interaction_feature, mask=None)
 
-        angle_features = interaction_feature[:, 0, :].view(B, -1, 64).permute(0, 2, 1)
+        angle_features = interaction_feature[:, 0, :].view(B, -1, 64).permute(0, 2, 1) # torch.Size([4, 64, 1024])
         depth_features = interaction_feature[:, 1, :].view(B, -1, 64).permute(0, 2, 1)
         width_features = interaction_feature[:, 2, :].view(B, -1, 64).permute(0, 2, 1)
         score_features = interaction_feature[:, 3, :].view(B, -1, 64).permute(0, 2, 1)
@@ -145,8 +144,8 @@ class Grasp_Head_Globle_Interaction(nn.Module):
         score_features = self.conv_score(score_features)
 
         # split prediction
-        end_points['grasp_angle_pred'] = angle_features  # [B, 12, num_points]
-        end_points['grasp_depth_pred'] = depth_features  # [B, 4, num_points]
+        end_points['grasp_angle_pred'] = angle_features  # [B, 13, num_points]
+        end_points['grasp_depth_pred'] = depth_features  # [B, 5, num_points]
         end_points['grasp_score_pred'] = score_features  # [B, 1, num_points]
         end_points['grasp_width_pred'] = width_features  # [B, 6, num_points]
         return end_points

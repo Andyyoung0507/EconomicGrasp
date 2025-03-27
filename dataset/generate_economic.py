@@ -97,6 +97,7 @@ if __name__ == "__main__":
 
         # nomalize the score
         # 归一化分数并保留视图多样性，确定每个点每个视图下分数最高的抓取的深度和角度，只剩下view维度不固定
+
         label_mask = (scene_scores > 0) & (scene_width <= 0.1)
         scene_scores[~label_mask] = 0
         po_mask = scene_scores > 0

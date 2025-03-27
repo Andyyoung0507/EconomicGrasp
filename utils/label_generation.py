@@ -113,7 +113,7 @@ def process_grasp_labels(end_points):
         nn_inds = knn(grasp_points_merged_, seed_xyz_, k=1).squeeze() - 1
 
         # assign anchor points to real points
-        grasp_points_merged = torch.index_select(grasp_points_merged, 0, nn_inds)
+        grasp_points_merged = torch.index_select(grasp_points_merged, 0, nn_inds) # nn_inds.shape = torch.Size([1024])
         # [1024 (scene points after sample), 3]
         grasp_views_rot_merged = torch.index_select(grasp_views_rot_merged, 0, nn_inds)
         # [1024 (scene points after sample), 300, 3, 3]
@@ -123,7 +123,7 @@ def process_grasp_labels(end_points):
         # [1024 (scene points after sample), num_of_view]
         grasp_rotations_merged = torch.index_select(grasp_rotations_merged, 0, nn_inds)
         # [1024 (scene points after sample), num_of_view]
-        grasp_depth_merged = torch.index_select(grasp_depth_merged, 0, nn_inds)
+        grasp_depth_merged = torch.index_select(grasp_depth_merged, 0, nn_inds) # torch.Size([1024, 300])
         # [1024 (scene points after sample), num_of_view]
         grasp_scores_merged = torch.index_select(grasp_scores_merged, 0, nn_inds)
         # [1024 (scene points after sample), num_of_view]
@@ -132,11 +132,11 @@ def process_grasp_labels(end_points):
 
         # select top view's rot, score and width
         # we only assign labels when the pred view is in the pre-defined 60 top view, others are zero
-        pred_top_view_ = pred_top_view.view(num_samples, 1, 1, 1).expand(-1, -1, 3, 3)
+        pred_top_view_ = pred_top_view.view(num_samples, 1, 1, 1).expand(-1, -1, 3, 3) # torch.Size([1024, 1, 3, 3])
         # [1024 (points after sample), 1, 3, 3]
-        top_grasp_views_rot = torch.gather(grasp_views_rot_merged, 1, pred_top_view_).squeeze(1)
+        top_grasp_views_rot = torch.gather(grasp_views_rot_merged, 1, pred_top_view_).squeeze(1) # torch.Size([1024, 3, 3])
         # [1024 (points after sample), 3, 3]
-        pid, vid = torch.where(pred_top_view.unsqueeze(-1) == top_view_index_merged)
+        pid, vid = torch.where(pred_top_view.unsqueeze(-1) == top_view_index_merged) #获取第一维和第二维的索引，分别是是点的索引和view的索引
         # both pid and vid are [true numbers], where(condition) equals to nonzero(condition)
         top_grasp_rotations = 12 * torch.ones(num_samples, dtype=torch.int32).to(seed_xyz.device)
         # [1024 (points after sample)]
@@ -158,7 +158,7 @@ def process_grasp_labels(end_points):
         valid_view_mask[pid] = True
         valid_points_count = valid_points_count + torch.sum(valid_point_mask)
         valid_views_count = valid_views_count + torch.sum(valid_view_mask)
-        valid_mask = valid_point_mask & valid_view_mask
+        valid_mask = valid_point_mask & valid_view_mask # torch.Size([1024])
 
         # add to batch
         batch_grasp_points.append(grasp_points_merged)

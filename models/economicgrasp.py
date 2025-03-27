@@ -69,7 +69,7 @@ class economicgrasp(nn.Module):
         objectness_pred = torch.argmax(objectness_score, 1)
         objectness_mask = (objectness_pred == 1)
         graspness_mask = graspness_score > cfgs.graspness_threshold
-        graspable_mask = objectness_mask & graspness_mask
+        graspable_mask = objectness_mask & graspness_mask # [B (batch size), 20000 (points in one pic of a scene)]
 
         # Generate the downsample point (1024 per scene) using the furthest point sampling
         seed_features_graspable = []

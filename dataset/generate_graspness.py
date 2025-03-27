@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from PIL import Image
 import scipy.io as scio
@@ -18,7 +18,8 @@ from graspnetAPI.utils.utils import get_obj_pose_list, transform_points
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset_root', default='/home/xiaoming/dataset/graspnet', help='the root of the GraspNet dataset')
+# parser.add_argument('--dataset_root', default='/home/xiaoming/dataset/graspnet', help='the root of the GraspNet dataset')
+parser.add_argument('--dataset_root', default='/home/axe/Downloads/datasets/GraspNet',  help='the root of the GraspNet dataset')
 parser.add_argument('--camera_type', default='kinect', help='Camera split [realsense/kinect]')
 
 
@@ -54,7 +55,7 @@ if __name__ == '__main__':
             factor_depth = meta['factor_depth']
             camera = CameraInfo(1280.0, 720.0, intrinsic[0][0], intrinsic[1][1], intrinsic[0][2], intrinsic[1][2],
                                 factor_depth)
-            cloud = create_point_cloud_from_depth_image(depth, camera, organized=True)
+            cloud = create_point_cloud_from_depth_image(depth, camera, organized=True) # 点云坐标系为相机帧
 
             # remove outlier and get objectness label
             depth_mask = (depth > 0)
@@ -73,7 +74,7 @@ if __name__ == '__main__':
             scene_reader = xmlReader(os.path.join(dataset_root, 'scenes', 'scene_' + str(scene_id).zfill(4),
                                                   camera_type, 'annotations', '%04d.xml' % ann_id))
             pose_vectors = scene_reader.getposevectorlist()
-            obj_list, pose_list = get_obj_pose_list(camera_pose, pose_vectors)
+            obj_list, pose_list = get_obj_pose_list(camera_pose, pose_vectors) # 物体列表，物体在第一相机帧的位姿
             grasp_labels = {}
             for i in obj_list:
                 file = np.load(os.path.join(dataset_root, 'grasp_label', '{}_labels.npz'.format(str(i).zfill(3))))
@@ -90,8 +91,8 @@ if __name__ == '__main__':
                 valid_grasp_mask = ((fric_coefs <= fric_coef_thresh) & (fric_coefs > 0) & ~collision)
                 valid_grasp_mask = valid_grasp_mask.reshape(num_points, -1)
                 graspness = np.sum(valid_grasp_mask, axis=1) / point_grasp_num
-                target_points = transform_points(sampled_points, trans_)
-                target_points = transform_points(target_points, np.linalg.inv(camera_pose))  # fix bug
+                target_points = transform_points(sampled_points, trans_) # 物体采样点在第一相机帧的位姿
+                target_points = transform_points(target_points, np.linalg.inv(camera_pose))  # fix bug 物体采样点在当前图像相机帧的位姿
                 grasp_points.append(target_points)
                 grasp_points_graspness.append(graspness.reshape(num_points, 1))
             grasp_points = np.vstack(grasp_points)
